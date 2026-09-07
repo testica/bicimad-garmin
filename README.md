@@ -269,8 +269,47 @@ response clears the local session so the user can log in again.
 ### Watch App
 
 1. Install the [Garmin Connect IQ SDK](https://developer.garmin.com/connect-iq/sdk/)
-2. Open the project in VS Code with the Monkey C extension
-3. Build and sideload to your watch or run in the simulator
+2. **Install the [TinyMetrix](https://tinymetrix.com) barrel** — required because the app imports `Tinymetrix` for analytics and crash reporting.
+
+   **Option A: Using VS Code (recommended)**
+
+   1. Open the project in VS Code with the Monkey C extension
+   2. Run `Monkey C: Configure Monkey Barrel` from the command palette
+   3. Download and select `tinymetrix-2.1.6.barrel` from:
+      https://tinymetrix.com/assets/binaries/tinymetrix-2.1.6.barrel
+
+   This creates or updates the local `barrels.jungle` configuration. The barrel
+   dependency itself is declared in `manifest.xml`.
+
+   **Option B: Manual configuration**
+
+   Create `barrels.jungle` in the project root with the path to the downloaded
+   barrel:
+
+   ```text
+   Tinymetrix = "/path/to/tinymetrix-2.1.6.barrel"
+   base.barrelPath = $(base.barrelPath);$(Tinymetrix)
+   ```
+
+   Keep `barrels.jungle` local because the path is machine-specific. When
+   building from the command line, include it together with `monkey.jungle`:
+
+   ```bash
+   monkeyc -f "monkey.jungle;barrels.jungle" ...
+   ```
+
+3. **Configure the local properties file**
+
+   Copy the example file:
+
+   ```bash
+   cp resources/properties.xml.example resources/properties.xml
+   ```
+
+   The example contains a development `MOCK_TOKEN`. For production, replace it
+   locally with your TinyMetrix token. Never commit `resources/properties.xml`.
+
+4. Build and sideload to your watch or run in the simulator
 
 ### Proxy Backend
 
