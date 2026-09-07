@@ -169,7 +169,7 @@
             command palette to edit the included barrels.
         -->
         <iq:barrels>
-            <iq:depends name="Tinymetrix" version="2.1.6"/>
+            <iq:depends name="Tinymetrix" version="2.2.1"/>
         </iq:barrels>
     </iq:application>
 </iq:manifest>

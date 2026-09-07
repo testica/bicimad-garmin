@@ -275,8 +275,8 @@ response clears the local session so the user can log in again.
 
    1. Open the project in VS Code with the Monkey C extension
    2. Run `Monkey C: Configure Monkey Barrel` from the command palette
-   3. Download and select `tinymetrix-2.1.6.barrel` from:
-      https://tinymetrix.com/assets/binaries/tinymetrix-2.1.6.barrel
+   3. Download and select `tinymetrix-2.2.1.barrel` from:
+      https://tinymetrix.com/assets/binaries/tinymetrix-2.2.1.barrel
 
    This creates or updates the local `barrels.jungle` configuration. The barrel
    dependency itself is declared in `manifest.xml`.
@@ -287,7 +287,7 @@ response clears the local session so the user can log in again.
    barrel:
 
    ```text
-   Tinymetrix = "/path/to/tinymetrix-2.1.6.barrel"
+   Tinymetrix = "/path/to/tinymetrix-2.2.1.barrel"
    base.barrelPath = $(base.barrelPath);$(Tinymetrix)
    ```
 
