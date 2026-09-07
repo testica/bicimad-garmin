@@ -1,17 +1,14 @@
 import Toybox.Position;
 import Toybox.Lang;
-import Toybox.Time;
 
 class PositionManager {
-    private var _lastPosition   as Position.Location? = null;
-    private var _hasLock        as Boolean = false;
-    private var _callback       as (Method(pos as Position.Location) as Void)? = null;
-    private var _lastUpdateTime as Long = 0l;
+    private var _lastPosition as Position.Location? = null;
+    private var _hasLock as Boolean = false;
+    private var _callback as (Method(pos as Position.Location) as Void)? = null;
 
     function initialize() {
-        _lastPosition   = null;
-        _hasLock        = false;
-        _lastUpdateTime = 0l;
+        _lastPosition = null;
+        _hasLock = false;
     }
 
     // Start listening to continuous GPS events
@@ -39,9 +36,8 @@ class PositionManager {
             var coords = position.toDegrees();
             // Verify if lock is valid (non-zero placeholder check)
             if (coords[0] != 0.0 || coords[1] != 0.0) {
-                _lastPosition   = position;
-                _hasLock        = true;
-                _lastUpdateTime = Time.now().value().toLong();
+                _lastPosition = position;
+                _hasLock = true;
 
                 if (_callback != null) {
                     _callback.invoke(position);
@@ -63,19 +59,6 @@ class PositionManager {
             return _lastPosition.toDegrees();
         }
         return null;
-    }
-
-    // Returns true if the last GPS fix is less than maxAgeSec seconds old
-    function isPositionFresh(maxAgeSec as Long) as Boolean {
-        if (_lastUpdateTime == 0l || !_hasLock) { return false; }
-        return (Time.now().value().toLong() - _lastUpdateTime) < maxAgeSec;
-    }
-
-    // Clears the cached position — forces a fresh GPS fix on next use
-    function invalidatePosition() as Void {
-        _lastUpdateTime = 0l;
-        _hasLock        = false;
-        _lastPosition   = null;
     }
 
     // Equirectangular flat-surface approximation for fast on-watch distance calculation

@@ -1,7 +1,6 @@
 import Toybox.WatchUi;
 import Toybox.Graphics;
 import Toybox.Lang;
-import Toybox.Position;
 import Tinymetrix;
 
 // -- Unlock bike — Native menu with two options: Plate + Reserve --
@@ -43,29 +42,14 @@ class PlateInputDelegate extends WatchUi.Menu2InputDelegate {
                 return;
             }
 
+            // Native ProgressBar while verifying the bike
             item.setSubLabel((WatchUi.loadResource(Rez.Strings.Verifying) as String));
             WatchUi.requestUpdate();
-
-            var pm = getApp().positionManager;
-            if (pm != null && pm.isPositionFresh(600l)) {
-                // GPS fresh (< 10 min) — update service coords and go straight to verify
-                var coords = pm.getLastCoordinates();
-                if (coords != null) {
-                    getApp().biciMadService.updateLocation(coords[0], coords[1]);
-                }
-                WatchUi.pushView(
-                    new WatchUi.ProgressBar((WatchUi.loadResource(Rez.Strings.Verifying) as String) + " #" + _plate, null),
-                    new PlateCheckProgressDelegate(_plate, self),
-                    WatchUi.SLIDE_UP
-                );
-            } else {
-                // GPS stale or unavailable — get a fresh fix first
-                WatchUi.pushView(
-                    new WatchUi.ProgressBar((WatchUi.loadResource(Rez.Strings.GpsSearching) as String), null),
-                    new PlateGPSDelegate(_plate, self),
-                    WatchUi.SLIDE_UP
-                );
-            }
+            WatchUi.pushView(
+                new WatchUi.ProgressBar((WatchUi.loadResource(Rez.Strings.Verifying) as String) + " #" + _plate, null),
+                new PlateCheckProgressDelegate(_plate, self),
+                WatchUi.SLIDE_UP
+            );
         }
     }
 
@@ -125,40 +109,6 @@ class PlatePickerDelegate extends WatchUi.TextPickerDelegate {
     function onCancel() as Boolean { return true; }
 }
 
-// -- GPS delegate for unlock --
-// Gets a fresh GPS fix before checking/unlocking, so the correct coordinates
-// are sent to the EMT API (avoids "too far from bike" rejection).
-
-class PlateGPSDelegate extends WatchUi.BehaviorDelegate {
-    private var _plate  as String;
-    private var _parent as PlateInputDelegate;
-
-    function initialize(plate as String, parent as PlateInputDelegate) {
-        BehaviorDelegate.initialize();
-        _plate  = plate;
-        _parent = parent;
-        getApp().positionManager.startGPS(method(:onGpsLock));
-    }
-
-    function onGpsLock(position as Position.Location) as Void {
-        getApp().positionManager.stopGPS();
-        var coords = position.toDegrees();
-        getApp().biciMadService.updateLocation(coords[0], coords[1]);
-        WatchUi.popView(WatchUi.SLIDE_DOWN);
-        WatchUi.pushView(
-            new WatchUi.ProgressBar((WatchUi.loadResource(Rez.Strings.Verifying) as String) + " #" + _plate, null),
-            new PlateCheckProgressDelegate(_plate, _parent),
-            WatchUi.SLIDE_UP
-        );
-    }
-
-    function onCancel() as Boolean {
-        getApp().positionManager.stopGPS();
-        WatchUi.popView(WatchUi.SLIDE_DOWN);
-        return true;
-    }
-}
-
 // -- Verification progress bar delegate --
 // Runs checkBikeByPlate and notifies the parent when done.
 
@@ -215,11 +165,6 @@ class PlateUnlockProgressDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onDone(success as Boolean, description as String?) as Void {
-        if (!success) {
-            // Invalidate cached position so the next attempt gets a fresh GPS fix
-            var pm = getApp().positionManager;
-            if (pm != null) { pm.invalidatePosition(); }
-        }
         WatchUi.popView(WatchUi.SLIDE_DOWN); // close ProgressBar
         WatchUi.pushView(
             new PlateResultView(success, _plate, description),

@@ -69,6 +69,13 @@
             <iq:product id="fenix8pro47mm"/>
             <iq:product id="fenix8solar47mm"/>
             <iq:product id="fenix8solar51mm"/>
+            <iq:product id="fenix943mm"/>
+            <iq:product id="fenix947mm"/>
+            <iq:product id="fenix9pro43mm"/>
+            <iq:product id="fenix9pro47mm"/>
+            <iq:product id="fenix9pro51mm"/>
+            <iq:product id="fenix9prosolar47mm"/>
+            <iq:product id="fenix9prosolar51mm"/>
             <iq:product id="fenixe"/>
             <iq:product id="fr165"/>
             <iq:product id="fr165m"/>
@@ -162,7 +169,7 @@
             command palette to edit the included barrels.
         -->
         <iq:barrels>
-            <iq:depends name="Tinymetrix" version="2.1.6"/>
+            <iq:depends name="Tinymetrix" version="2.2.1"/>
         </iq:barrels>
     </iq:application>
 </iq:manifest>

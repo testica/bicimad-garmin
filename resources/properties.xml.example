@@ -2,6 +2,6 @@
     <properties>
         <property id="TinymetrixToken" type="string">MOCK_TOKEN</property>
         <property id="AppName" type="string">BiciMad</property>
-        <property id="AppVersion" type="string">1.0.0</property>
+        <property id="AppVersion" type="string">1.0.3</property>
     </properties>
 </resources>
