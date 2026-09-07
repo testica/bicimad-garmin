@@ -49,9 +49,10 @@ class LoginMenuDelegate extends WatchUi.Menu2InputDelegate {
         _pendingStationId   = pendingId;
         _pendingStationName = pendingName;
 
-        // Pre-fill email if previously saved; password always starts empty
+        // Pre-fill credentials from saved email (user can change them by tapping each field)
         var saved = getApp().getUserEmail();
         _email    = (saved != null && saved.length() > 0) ? saved : "";
+        _password = "";
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {

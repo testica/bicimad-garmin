@@ -48,7 +48,7 @@ const APIEMTPAY_BASE = 'https://apiemtpay.emtmadrid.es';
 
 // ── Anonymous app token cache (refreshed when it expires) ────────────────
 // The anonymous login uses only the app credentials, no user account needed.
-// The token lasts 30 days. This avoids logging in on every request.
+// The API returns the lifetime as tokenSecExpiration (seconds).
 let _anonToken  = null;
 let _anonExpiry = 0; // seconds since epoch
 
@@ -76,9 +76,10 @@ async function getAnonToken() {
 
   const data = await res.json();
   if ((data.code === '00' || data.code === '01') && data.data?.[0]?.accessToken) {
+    const ttlSec = Number(data.data[0].tokenSecExpiration || 0);
     _anonToken  = data.data[0].accessToken;
-    _anonExpiry = (data.data[0].tokenDteExpiration?.$date || 0) / 1000;
-    console.log(`[auth] Anonymous token refreshed, expires ${new Date(_anonExpiry * 1000).toISOString()}`);
+    _anonExpiry = ttlSec > 0 ? now + ttlSec : 0;
+    console.log(`[auth] Anonymous token refreshed${_anonExpiry > 0 ? `, expires ${new Date(_anonExpiry * 1000).toISOString()}` : ''}`);
     return _anonToken;
   }
   throw new Error(`Anonymous login failed: code=${data.code} — ${data.description}`);
@@ -225,7 +226,7 @@ app.get('/api/trips', async (req, res) => {
 //    fleet   = 1 (BiciMAD Classic) or 2 (BiciMAD Go)
 // ─────────────────────────────────────────────────────────────────────────
 app.get('/api/check', async (req, res) => {
-  const { plate, token, userId = '', deviceId = 'garmin-watch', deviceModel = '' } = req.query;
+  const { plate, token, userId = '' } = req.query;
   if (!plate || !token) return err(res, 'Missing plate or token');
 
   const chkRes  = await fetch(`${APIEMTPAY_BASE}/v1/checkresource/bicimad/${plate}/`, {
@@ -236,13 +237,13 @@ app.get('/api/check', async (req, res) => {
       'appPlatform':    'Android',
       'appVersion':     '5.0.0',
       'language':       'ES',
-      'deviceId':       deviceId,
-      'deviceModel':    deviceModel,
+      'deviceId':       'garmin-proxy',
       'Content-Type':   'application/octet-stream',
       'Accept-Charset': 'multipart/encrypted',
     },
   });
 
+  if (chkRes.status === 401) return err(res, 'EMT returned 401', 401);
   const data = await chkRes.json();
   if (data.code !== '00') return res.json({ code: data.code, description: data.description });
 
@@ -282,29 +283,26 @@ app.get('/api/check', async (req, res) => {
 //  Response: { code, description, bike, docker }
 // ─────────────────────────────────────────────────────────────────────────
 app.get('/api/unlock', async (req, res) => {
-  const { plate, token, userId, deviceId = 'garmin-watch', deviceModel = '' } = req.query;
-  const lat = parseFloat(req.query.lat);
-  const lon = parseFloat(req.query.lon);
-
-  if (!plate || !token || !userId)  return err(res, 'Missing plate, token or userId');
-  if (isNaN(lat) || isNaN(lon))     return err(res, 'Missing or invalid lat/lon');
+  const { plate, token, userId, lat = '40.4168', lon = '-3.7038' } = req.query;
+  if (!plate || !token || !userId) return err(res, 'Missing plate, token or userId');
 
   // Step 1: verify the bike
   const chkRes  = await fetch(`${APIEMTPAY_BASE}/v1/checkresource/bicimad/${plate}/`, {
     headers: {
       'accessToken': token, 'userId': userId,
       'appName': 'BiciMAD', 'appPlatform': 'Android', 'appVersion': '5.0.0',
-      'language': 'ES', 'deviceId': deviceId, 'deviceModel': deviceModel,
+      'language': 'ES', 'deviceId': 'garmin-proxy',
       'Content-Type': 'application/octet-stream', 'Accept-Charset': 'multipart/encrypted',
     },
   });
+  if (chkRes.status === 401) return err(res, 'EMT returned 401', 401);
   const chkData = await chkRes.json();
   if (chkData.code !== '00') return err(res, `Bike not found: ${chkData.description}`, 404);
 
   const bike = chkData.data;
 
   // Step 2: compute hashcode (reverse-engineered from APK cifrarHashcode())
-  const hashcode = computeHashcode(bike.number, bike.docker, lat, lon, userId, OPERATOR_ID);
+  const hashcode = computeHashcode(bike.number, bike.docker, parseFloat(lat), parseFloat(lon), userId, OPERATOR_ID);
 
   // Step 3: sell ticket (unlock the bike)
   // v2 + PUT confirmed working (v1/POST gives "Not valid xClientId")
@@ -321,12 +319,12 @@ app.get('/api/unlock', async (req, res) => {
       'appPlatform': 'Android',
       'appVersion':  '5.0.0',
       'language':    'ES',
-      'deviceId':    deviceId,
-      'deviceModel': deviceModel,
+      'deviceId':    'garmin-proxy',
       'Content-Type': 'application/json',
     },
   });
 
+  if (stRes.status === 401) return err(res, 'EMT returned 401', 401);
   const stData = await stRes.json();
   console.log(`[unlock] plate=${plate} code=${stData.code} — ${stData.description}`);
 
@@ -427,6 +425,6 @@ app.listen(PORT, () => {
   console.log('  GET /api/stations?filter=coordinates&value=40.41,-3.70');
   console.log('  GET /api/stations?filter=name&value=callao');
   console.log('  GET /api/trips?token=TOKEN&userId=USER_ID');
-  console.log('  GET /api/check?plate=15198&token=TOKEN&userId=USER_ID&deviceId=ID&deviceModel=MODEL');
-  console.log('  GET /api/unlock?plate=15198&token=TOKEN&userId=USER_ID&lat=40.41&lon=-3.70&deviceId=ID&deviceModel=MODEL');
+  console.log('  GET /api/check?plate=15198&token=TOKEN&userId=USER_ID');
+  console.log('  GET /api/unlock?plate=15198&token=TOKEN&userId=USER_ID&lat=40.41&lon=-3.70');
 });
